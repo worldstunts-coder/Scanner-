@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Receipt Scanner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#0d0d12;color:#eeeef5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+.top{flex-shrink:0;margin:12px 12px 0;background:linear-gradient(135deg,#0c1a11,#0d1020);border:1px solid #2d2d45;border-radius:16px;padding:16px 18px;}
+.lbl{font-size:10px;color:#7070a0;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
+.amt{font-size:44px;font-weight:800;color:#00e096;font-variant-numeric:tabular-nums;line-height:1;}
+.sub{font-size:12px;color:#7070a0;margin-top:5px;}
+.hist{flex:1;overflow-y:auto;padding:10px 12px;}
+.hl{font-size:10px;color:#7070a0;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.bundo{font-size:11px;font-weight:700;color:#ffd60a;background:rgba(255,214,10,.1);border:1px solid rgba(255,214,10,.3);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+.bundo:disabled{opacity:.3;pointer-events:none;}
+.empty{color:#7070a0;font-size:13px;}
+.list{display:flex;flex-direction:column;gap:5px;}
+.row{background:#161620;border:1px solid #2d2d45;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;animation:fi .18s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(-3px)}}
+.rn{font-size:10px;color:#7070a0;min-width:16px;}
+.rb{flex:1;min-width:0;}
+.ra{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;}
+.rm{font-size:10px;color:#7070a0;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rdel{background:none;border:none;color:#7070a0;font-size:18px;cursor:pointer;padding:3px 6px;border-radius:5px;}
+.rdel:active{color:#ff4466;}
+.sheet{flex-shrink:0;background:#161620;border-top:1px solid #2d2d45;border-radius:20px 20px 0 0;padding:10px 12px 28px;box-shadow:0 -8px 24px rgba(0,0,0,.5);}
+.drag{width:32px;height:3px;background:#2d2d45;border-radius:2px;margin:0 auto 10px;}
+.cambox{background:#000;border-radius:12px;overflow:hidden;position:relative;width:100%;height:126px;margin-bottom:8px;border:1px solid #2d2d45;}
+#vid{width:100%;height:100%;object-fit:cover;display:none;}
+#cnv{display:none;}
+.cph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7070a0;font-size:11px;letter-spacing:1px;}
+.cph .ic{font-size:22px;opacity:.3;}
+.sov{position:absolute;inset:0;display:none;}
+.sov.on{display:block;}
+.sline{position:absolute;left:5%;right:5%;height:2px;background:#00e096;box-shadow:0 0 8px #00e096;animation:scan 1.6s ease-in-out infinite;}
+@keyframes scan{0%{top:10%}50%{top:82%}100%{top:10%}}
+.cors{position:absolute;inset:7px;pointer-events:none;}
+.cors::before,.cors::after{content:'';position:absolute;width:15px;height:15px;border-color:rgba(255,255,255,.4);border-style:solid;}
+.cors::before{top:0;left:0;border-width:2px 0 0 2px;}
+.cors::after{bottom:0;right:0;border-width:0 2px 2px 0;}
+.cbar{position:absolute;bottom:0;left:0;right:0;padding:4px 8px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:10px;font-weight:600;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px;}
+.dot{width:5px;height:5px;border-radius:50%;background:#00e096;flex-shrink:0;}
+.dot.live{animation:blink 1.4s ease-in-out infinite;}
+.dot.proc{background:#ffd60a;animation:spn .5s linear infinite;}
+.dot.off{background:#ffd60a;animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes spn{to{transform:rotate(360deg)}}
+.drow{background:#1e1e2e;border:1px solid #2d2d45;border-radius:10px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.dlbl{font-size:10px;color:#7070a0;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.dval{flex:1;font-size:20px;font-weight:800;color:#00e096;font-variant-numeric:tabular-nums;}
+.dval.dim{color:#7070a0;font-size:13px;font-weight:400;}
+.irow{display:flex;gap:7px;margin-bottom:7px;}
+.pfx{background:#1e1e2e;color:#7070a0;font-size:20px;font-weight:700;padding:10px 8px 10px 12px;border-radius:10px 0 0 10px;border:1.5px solid #2d2d45;border-right:none;display:flex;align-items:center;}
+#ainp{flex:1;background:#161620;border:1.5px solid #2d2d45;border-left:none;border-radius:0 10px 10px 0;color:#eeeef5;font-size:26px;font-weight:800;padding:10px;outline:none;-webkit-appearance:none;font-variant-numeric:tabular-nums;font-family:inherit;min-width:0;}
+#ainp:focus{border-color:#00e096;}
+.badd{padding:0 18px;background:#00e096;color:#000;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;-webkit-appearance:none;flex-shrink:0;}
+.badd:active{opacity:.8;}
+.urow{display:flex;gap:7px;}
+.bu{flex:1;padding:10px;background:#1e1e2e;border:1px solid #2d2d45;border-radius:9px;color:#7070a0;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;-webkit-appearance:none;text-align:center;}
+.bu:active{opacity:.7;}
+.bscan{color:#eeeef5;}
+.bscan.on{border-color:#00e096;color:#00e096;}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-60px);background:#1e1e2e;color:#eeeef5;border:1px solid #00e096;border-radius:16px;padding:8px 16px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="lbl">Running Total</div>
+  <div class="amt" id="totAmt">$0.00</div>
+  <div class="sub" id="totSub">0 receipts</div>
+</div>
+
+<div class="hist">
+  <div class="hl">
+    <span>Recent Scans</span>
+    <button class="bundo" id="btnUndo" onclick="undoLast()" disabled>↩ Undo</button>
+  </div>
+  <div id="histEl"><div class="empty">No entries yet.</div></div>
+</div>
+
+<div class="sheet">
+  <div class="drag"></div>
+  <div class="cambox">
+    <video id="vid" playsinline autoplay muted webkit-playsinline></video>
+    <canvas id="cnv"></canvas>
+    <div class="sov" id="sov"><div class="cors"></div><div class="sline"></div></div>
+    <div class="cph" id="cph"><div class="ic">📷</div><span id="cphtxt">TAP SCAN TO START</span></div>
+    <div class="cbar"><div class="dot off" id="dot"></div><span id="stxt">Ready</span></div>
+  </div>
+  <div class="drow">
+    <div class="dlbl">Detected</div>
+    <div class="dval dim" id="dval">waiting…</div>
+  </div>
+  <div class="irow">
+    <div class="pfx">$</div>
+    <input id="ainp" type="number" inputmode="decimal" placeholder="0.00" step="0.01" min="0">
+    <button class="badd" onclick="addEntry()">Add</button>
+  </div>
+  <div class="urow">
+    <button class="bu bscan" id="bscan" onclick="toggleScan()">📷 Scan</button>
+    <button class="bu" onclick="resetAll()">Reset All</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var S={entries:[],total:0},K='rv9',lA=null,lT=0,C=1500,si=null,st=null,sc=false;
+
+function sv(){try{localStorage.setItem(K,JSON.stringify(S));}catch(e){}}
+function ld(){try{var d=localStorage.getItem(K);if(d){S=JSON.parse(d);if(!Array.isArray(S.entries))S.entries=[];}S.total=S.entries.reduce(function(s,e){return s+e.amount;},0);}catch(e){}}
+
+ld();rend();
+
+document.getElementById('ainp').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addEntry();}});
+
+function toggleScan(){if(sc)stopScan();else startScan();}
+
+function startScan(){
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false})
+  .then(function(s){
+    st=s;
+    var v=document.getElementById('vid');
+    v.srcObject=s;v.style.display='block';
+    document.getElementById('cph').style.display='none';
+    document.getElementById('sov').classList.add('on');
+    v.onloadedmetadata=function(){
+      v.play().then(function(){
+        sc=true;lA=null;
+        setDot('live','Live — point at TOTAL');
+        document.getElementById('bscan').textContent='⏹ Stop';
+        document.getElementById('bscan').classList.add('on');
+        si=setInterval(ocr,2200);
+      }).catch(noCamera);
+    };
+  }).catch(noCamera);
+}
+
+function stopScan(){
+  clearInterval(si);si=null;
+  if(st){st.getTracks().forEach(function(t){t.stop();});st=null;}
+  var v=document.getElementById('vid');
+  v.style.display='none';v.srcObject=null;
+  document.getElementById('cph').style.display='flex';
+  document.getElementById('sov').classList.remove('on');
+  sc=false;
+  setDot('off','Stopped');
+  document.getElementById('bscan').textContent='📷 Scan';
+  document.getElementById('bscan').classList.remove('on');
+  document.getElementById('dval').textContent='waiting…';
+  document.getElementById('dval').className='dval dim';
+}
+
+function noCamera(){
+  sc=false;
+  setDot('off','No camera — enter manually');
+  document.getElementById('cphtxt').textContent='ENTER AMOUNT MANUALLY';
+  document.getElementById('bscan').textContent='📷 Scan';
+  document.getElementById('bscan').classList.remove('on');
+}
+
+function ocr(){
+  var v=document.getElementById('vid');
+  if(!v.readyState||v.readyState<2)return;
+  var c=document.getElementById('cnv');
+  c.width=v.videoWidth||1280;c.height=v.videoHeight||720;
+  var ctx=c.getContext('2d');ctx.drawImage(v,0,0,c.width,c.height);
+  var cy=Math.floor(c.height*.4),ch=c.height-cy;
+  var t=document.createElement('canvas');t.width=c.width;t.height=ch;
+  t.getContext('2d').putImageData(ctx.getImageData(0,cy,c.width,ch),0,0);
+  var b64=t.toDataURL('image/jpeg',.85).split(',')[1];
+  setDot('proc','Reading…');
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',max_tokens:80,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+        {type:'text',text:'Receipt. Find the final total amount paid. Priority: TOTAL > GRAND TOTAL > CHECK TOTAL > AMOUNT DUE > BALANCE DUE. Return ONLY JSON: {"amount":7.98,"label":"TOTAL"}\nIf not found: {"amount":null}'}
+      ]}]
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var txt=((d.content&&d.content[0]&&d.content[0].text)||'').trim().replace(/```json|```/g,'').trim();
+    var p=null;
+    try{p=JSON.parse(txt);}catch(e){var m=txt.match(/\{[\s\S]*?\}/);if(m)try{p=JSON.parse(m[0]);}catch(e2){}}
+    var a=p&&p.amount>0?Number(p.amount):null;
+    if(a){
+      setDot('live','Found $'+a.toFixed(2));
+      document.getElementById('dval').textContent='$'+a.toFixed(2);
+      document.getElementById('dval').className='dval';
+      if((Date.now()-lT)>C&&(lA===null||Math.abs(a-lA)>0.005)){
+        document.getElementById('ainp').value=a.toFixed(2);
+      } else {
+        setDot('live',(Date.now()-lT)<=C?'Wait a moment…':'Same — skipped');
+      }
+    } else {
+      setDot('live','Not found — enter manually');
+      document.getElementById('dval').textContent='not found';
+      document.getElementById('dval').className='dval dim';
+    }
+  })
+  .catch(function(){setDot('live','Retrying…');});
+}
+
+function addEntry(){
+  var v=parseFloat(document.getElementById('ainp').value);
+  if(!v||v<=0){toast('Enter an amount');document.getElementById('ainp').focus();return;}
+  S.entries.unshift({id:'e'+Date.now(),amount:v,ts:Date.now()});
+  S.total=S.entries.reduce(function(s,e){return s+e.amount;},0);
+  sv();lA=v;lT=Date.now();
+  document.getElementById('ainp').value='';
+  document.getElementById('dval').textContent='waiting…';
+  document.getElementById('dval').className='dval dim';
+  rend();toast('+ $'+v.toFixed(2)+' ✓');
+}
+
+function undoLast(){
+  if(!S.entries.length)return;
+  var r=S.entries.shift();
+  S.total=S.entries.reduce(function(s,e){return s+e.amount;},0);
+  lA=null;lT=0;sv();rend();toast('Removed $'+r.amount.toFixed(2));
+}
+
+function delEntry(id){
+  S.entries=S.entries.filter(function(e){return e.id!==id;});
+  S.total=S.entries.reduce(function(s,e){return s+e.amount;},0);
+  sv();rend();
+}
+
+function resetAll(){
+  if(!confirm('Reset everything?'))return;
+  S={entries:[],total:0};sv();lA=null;lT=0;
+  document.getElementById('ainp').value='';
+  document.getElementById('dval').textContent='waiting…';
+  document.getElementById('dval').className='dval dim';
+  rend();toast('Reset done');
+}
+
+function rend(){
+  document.getElementById('totAmt').textContent='$'+S.total.toFixed(2);
+  var n=S.entries.length;
+  document.getElementById('totSub').textContent=n+' receipt'+(n!==1?'s':'');
+  document.getElementById('btnUndo').disabled=!n;
+  var el=document.getElementById('histEl');
+  if(!n){el.innerHTML='<div class="empty">No entries yet.</div>';return;}
+  var h='<div class="list">';
+  S.entries.forEach(function(e,i){
+    var d=new Date(e.ts);
+    var ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    h+='<div class="row"><div class="rn">'+(S.entries.length-i)+'</div><div class="rb"><div class="ra">$'+e.amount.toFixed(2)+'</div><div class="rm">'+ds+'</div></div><button class="rdel" onclick="delEntry(\''+e.id+'\')">×</button></div>';
+  });
+  h+='</div>';el.innerHTML=h;
+}
+
+function setDot(m,t){
+  document.getElementById('dot').className='dot '+(m==='live'?'live':m==='proc'?'proc':'off');
+  document.getElementById('stxt').textContent=t;
+}
+
+var tt=null;
+function toast(m){
+  var el=document.getElementById('toast');
+  el.textContent=m;el.classList.add('on');
+  clearTimeout(tt);tt=setTimeout(function(){el.classList.remove('on');},2200);
+}
+</script>
+
+</body>
+</html>
