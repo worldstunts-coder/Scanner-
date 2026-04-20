@@ -627,7 +627,7 @@ function ocr() {
   c.width=v.videoWidth||1280; c.height=v.videoHeight||720;
   var ctx=c.getContext('2d'); ctx.drawImage(v,0,0,c.width,c.height);
   // Crop bottom 55%
-  var cy=Math.floor(c.height*.15), ch=c.height-cy;
+  var cy=0, ch=c.height-cy;
   var t=document.createElement('canvas'); t.width=c.width; t.height=ch;
   t.getContext('2d').putImageData(ctx.getImageData(0,cy,c.width,ch),0,0);
   var b64=t.toDataURL('image/jpeg',.88).split(',')[1];
